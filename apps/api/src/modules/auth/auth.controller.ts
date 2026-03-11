@@ -1,5 +1,7 @@
 import type { Request, Response, NextFunction } from 'express';
 import * as AuthService from './auth.service';
+import { RegisterSchema, LoginSchema } from './auth.model';
+
 
 export const register = async (
   req: Request,
@@ -7,7 +9,8 @@ export const register = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const user = await AuthService.register(req.body as Parameters<typeof AuthService.register>[0]);
+    const dto = RegisterSchema.parse(req.body);   
+    const user = await AuthService.register(dto);
     res.status(201).json({ success: true, data: user });
   } catch (err) {
     next(err);
@@ -20,7 +23,8 @@ export const login = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const result = await AuthService.login(req.body as Parameters<typeof AuthService.login>[0]);
+    const dto = LoginSchema.parse(req.body);  
+    const result = await AuthService.login(dto);
     res.status(200).json({ success: true, data: result });
   } catch (err) {
     next(err);
