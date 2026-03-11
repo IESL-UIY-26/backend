@@ -1,0 +1,166 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum AccountStatus {
+  ACTIVE
+  PENDING
+  DISABLED
+}
+
+enum TeamRole {
+  LEADER
+  MEMBER
+}
+
+model User {
+  id              String   @id @default(uuid()) @db.Uuid
+  full_name       String   @db.VarChar(150)
+  email           String   @unique @db.VarChar(255)
+  contact_number  String?  @db.VarChar(255)
+  role            UserRole
+  gender          String?
+  address         String?
+  date_of_birth   DateTime?
+  account_status  AccountStatus
+  created_at      DateTime @default(now())
+
+  teamMembers     TeamMember[]
+  votes           Vote[]
+  sessionsCreated Session[]
+  sessionRegs     SessionRegistration[]
+  feedbacks       SessionFeedback[]
+}
+
+model University {
+  id    String @id @default(uuid()) @db.Uuid
+  name  String @unique @db.VarChar(150)
+
+  supervisors Supervisor[]
+  teams       Team[]
+}
+
+model Supervisor {
+  supervisor_id             String @id @default(uuid()) @db.Uuid
+  supervisor_name           String
+  supervisor_email          String
+  supervisor_contact_number String
+  supervisor_university_id  String @db.Uuid
+
+  university University @relation(fields: [supervisor_university_id], references: [id])
+
+  teams        Team[] @relation("SupervisorTeams")
+  coSupervised Team[] @relation("CoSupervisorTeams")
+}
+
+model Team {
+  id               String   @id @default(uuid()) @db.Uuid
+  team_name        String   @unique @db.VarChar(150)
+  university_id    String   @db.Uuid
+  report           String?
+  declaration      String?
+  created_at       DateTime @default(now())
+  co_supervisor_id String?  @db.Uuid
+  supervisor_id    String?  @db.Uuid
+
+  university University @relation(fields: [university_id], references: [id])
+
+  supervisor   Supervisor? @relation("SupervisorTeams", fields: [supervisor_id], references: [supervisor_id])
+  coSupervisor Supervisor? @relation("CoSupervisorTeams", fields: [co_supervisor_id], references: [supervisor_id])
+
+  members  TeamMember[]
+  projects Project[]
+}
+
+model TeamMember {
+  id                  String   @id @default(uuid()) @db.Uuid
+  user_id             String   @db.Uuid
+  iesl_id             Int?
+  team_id             String   @db.Uuid
+  role                TeamRole
+  department          String?
+  university_id_image String?
+  created_at          DateTime @default(now())
+
+  user User @relation(fields: [user_id], references: [id])
+  team Team @relation(fields: [team_id], references: [id])
+}
+
+model Project {
+  id           String   @id @default(uuid()) @db.Uuid
+  team_id      String   @db.Uuid
+  title        String   @unique @db.VarChar(255)
+  description  String?
+  image_url    String?
+  youtube_link String?
+  pdf          String?
+  vote_count   Int      @default(0)
+  github_url   String?
+  created_at   DateTime @default(now())
+
+  team  Team  @relation(fields: [team_id], references: [id])
+  votes Vote[]
+}
+
+model Vote {
+  id         String   @id @default(uuid()) @db.Uuid
+  user_id    String   @db.Uuid
+  project_id String   @db.Uuid
+  created_at DateTime @default(now())
+
+  user    User    @relation(fields: [user_id], references: [id])
+  project Project @relation(fields: [project_id], references: [id])
+
+  @@unique([user_id, project_id])
+}
+
+model Session {
+  id               String   @id @default(uuid()) @db.Uuid
+  title            String   @db.VarChar(255)
+  description      String?
+  zoom_link        String?
+  session_date     DateTime
+  session_time     DateTime
+  duration_minutes Int
+  host_name        String?
+  created_by       String   @db.Uuid
+  created_at       DateTime @default(now())
+
+  creator       User @relation(fields: [created_by], references: [id])
+  registrations SessionRegistration[]
+  feedbacks     SessionFeedback[]
+}
+
+model SessionRegistration {
+  id         String   @id @default(uuid()) @db.Uuid
+  session_id String   @db.Uuid
+  user_id    String   @db.Uuid
+  created_at DateTime @default(now())
+
+  session Session @relation(fields: [session_id], references: [id])
+  user    User    @relation(fields: [user_id], references: [id])
+
+  @@unique([session_id, user_id])
+}
+
+model SessionFeedback {
+  id         String   @id @default(uuid()) @db.Uuid
+  session_id String   @db.Uuid
+  user_id    String   @db.Uuid
+  rating     Int
+  comment    String?
+  created_at DateTime @default(now())
+
+  session Session @relation(fields: [session_id], references: [id])
+  user    User    @relation(fields: [user_id], references: [id])
+}
