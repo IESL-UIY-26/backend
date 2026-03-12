@@ -46,8 +46,14 @@ export const UpdateTeamSchema = z.object({
     .optional(),
 });
 
+export const UpdateTeamSupervisorSchema = z.object({
+  supervisor_id: z.string().uuid('Invalid supervisor ID').nullable().optional(),
+  co_supervisor_id: z.string().uuid('Invalid co-supervisor ID').nullable().optional(),
+});
+
 export type CreateTeamDto = z.infer<typeof CreateTeamSchema>;
 export type CreateTeamMemberDto = z.infer<typeof CreateTeamMemberSchema>;
 export type CreateSupervisorDto = z.infer<typeof CreateSupervisorSchema>;
 export type UpdateTeamDto = z.infer<typeof UpdateTeamSchema>;
 export type UpdateTeamMemberDto = z.infer<typeof UpdateTeamMemberSchema>;
+export type UpdateTeamSupervisorDto = z.infer<typeof UpdateTeamSupervisorSchema>;

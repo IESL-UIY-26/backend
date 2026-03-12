@@ -136,6 +136,17 @@ export const getTeamById = async (id: string) => {
   });
 };
 
+export const isTeamLeader = async (userId: string, teamId: string) => {
+  const teamMember = await prisma.teamMember.findFirst({
+    where: {
+      user_id: userId,
+      team_id: teamId,
+      role: 'LEADER',
+    },
+  });
+  return !!teamMember;
+};
+
 export const updateTeam = async (id: string, data: UpdateTeamDto) => {
   return prisma.$transaction(async (tx) => {
     // Fetch existing team to resolve supervisor/co-supervisor IDs
@@ -221,4 +232,39 @@ export const deleteTeam = async (id: string) => {
     await tx.teamMember.deleteMany({ where: { team_id: id } });
     return tx.team.delete({ where: { id } });
   }, TX_OPTS);
+};
+
+export const updateTeamSupervisor = async (
+  teamId: string,
+  userId: string,
+  data: { supervisor_id?: string | null; co_supervisor_id?: string | null }
+) => {
+  // Check if user is team leader
+  const isLeader = await isTeamLeader(userId, teamId);
+  if (!isLeader) {
+    const err = new Error('Only team leader can change supervisor data') as Error & {
+      statusCode: number;
+    };
+    err.statusCode = 403;
+    throw err;
+  }
+
+  // Update team with new supervisor IDs
+  const team = await prisma.team.update({
+    where: { id: teamId },
+    data: {
+      ...(data.supervisor_id !== undefined && { supervisor_id: data.supervisor_id }),
+      ...(data.co_supervisor_id !== undefined && { co_supervisor_id: data.co_supervisor_id }),
+    },
+    include: {
+      university: true,
+      supervisor: true,
+      coSupervisor: true,
+      members: {
+        include: { user: { select: { id: true, full_name: true, email: true } } },
+      },
+    },
+  });
+
+  return team;
 };
