@@ -3,6 +3,11 @@ import { ProjectsService } from './projects.service';
 import { createProjectSchema, updateProjectSchema } from './projects.dtos';
 
 export class ProjectsController {
+  static async getAllProjectsPublic(_req: Request, res: Response) {
+    const projects = await ProjectsService.getAllProjectsPublic();
+    res.json({ success: true, data: projects });
+  }
+
   static async createProject(req: Request, res: Response) {
     const teamId = req.params.teamId as string;
     const userId = req.user!.id;
@@ -34,16 +39,18 @@ export class ProjectsController {
 
   static async getProjectsByTeam(req: Request, res: Response) {
     const teamId = req.params.teamId as string;
+    const userId = req.user!.id;
 
-    const projects = await ProjectsService.getProjectsByTeam(teamId);
+    const projects = await ProjectsService.getProjectsByTeam(teamId, userId);
 
     res.json({ success: true, data: projects });
   }
 
   static async getProjectById(req: Request, res: Response) {
     const projectId = req.params.projectId as string;
+    const userId = req.user!.id;
 
-    const project = await ProjectsService.getProjectById(projectId);
+    const project = await ProjectsService.getProjectById(projectId, userId);
 
     res.json({ success: true, data: project });
   }

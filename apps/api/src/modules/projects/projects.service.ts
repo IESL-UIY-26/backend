@@ -2,6 +2,32 @@ import { prisma } from '../../config/db';
 import type { CreateProjectDto, UpdateProjectDto } from './projects.dtos';
 
 export class ProjectsService {
+  static async getAllProjectsPublic() {
+    return prisma.project.findMany({
+      orderBy: { created_at: 'desc' },
+      include: {
+        team: {
+          include: {
+            university: true,
+            supervisor: true,
+            coSupervisor: true,
+            members: {
+              include: {
+                user: {
+                  select: {
+                    id: true,
+                    full_name: true,
+                    email: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+  }
+
   /**
    * Check if a user is the team leader
    */
@@ -11,6 +37,16 @@ export class ProjectsService {
         user_id: userId,
         team_id: teamId,
         role: 'LEADER',
+      },
+    });
+    return !!member;
+  }
+
+  static async isTeamMember(userId: string, teamId: string): Promise<boolean> {
+    const member = await prisma.teamMember.findFirst({
+      where: {
+        user_id: userId,
+        team_id: teamId,
       },
     });
     return !!member;
@@ -99,7 +135,14 @@ export class ProjectsService {
   /**
    * Get all projects for a team
    */
-  static async getProjectsByTeam(teamId: string) {
+  static async getProjectsByTeam(teamId: string, userId: string) {
+    const isMember = await this.isTeamMember(userId, teamId);
+    if (!isMember) {
+      const err = new Error('Only members of this team can view team projects');
+      (err as any).statusCode = 403;
+      throw err;
+    }
+
     return prisma.project.findMany({
       where: { team_id: teamId },
       orderBy: { created_at: 'desc' },
@@ -109,7 +152,7 @@ export class ProjectsService {
   /**
    * Get a single project
    */
-  static async getProjectById(projectId: string) {
+  static async getProjectById(projectId: string, userId: string) {
     const project = await prisma.project.findUnique({
       where: { id: projectId },
     });
@@ -117,6 +160,13 @@ export class ProjectsService {
     if (!project) {
       const err = new Error('Project not found');
       (err as any).statusCode = 404;
+      throw err;
+    }
+
+    const isMember = await this.isTeamMember(userId, project.team_id);
+    if (!isMember) {
+      const err = new Error('Only members of this team can view this project');
+      (err as any).statusCode = 403;
       throw err;
     }
 

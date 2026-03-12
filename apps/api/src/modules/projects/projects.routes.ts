@@ -4,16 +4,21 @@ import { ProjectsController } from './projects.controller';
 
 const router = Router({ mergeParams: true });
 
+// Public route (no authentication required)
+router.get('/public/projects', ProjectsController.getAllProjectsPublic);
+
 // All routes require authentication
 router.use(protect);
 
-// Team projects
+// Team members only - enforced in service
 router.get('/teams/:teamId/projects', ProjectsController.getProjectsByTeam);
+// Leader only - enforced in service
 router.post('/teams/:teamId/projects', ProjectsController.createProject);
-
-// Individual project operations (leader only - enforced in service)
+// Team members only - enforced in service
 router.get('/projects/:projectId', ProjectsController.getProjectById);
+// Leader only - enforced in service
 router.patch('/projects/:projectId', ProjectsController.updateProject);
+// Leader only - enforced in service
 router.delete('/projects/:projectId', ProjectsController.deleteProject);
 
 export default router;
