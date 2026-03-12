@@ -1,49 +1,45 @@
-﻿import { supabase, supabaseAdmin } from '../../config/supabase';
+﻿import { supabase } from '../../config/supabase';
 import { prisma } from '../../config/db';
-import type { RegisterDto, LoginDto } from './auth.model';
 
-export const register = async (dto: RegisterDto) => {
-  // 1. Create user in Supabase Auth
-  const { data, error } = await supabaseAdmin.auth.admin.createUser({
-    email: dto.email,
-    password: dto.password,
-    email_confirm: true,
-  });
+/**
+ * Verifies the Supabase access token and upserts the user profile in Neon DB.
+ * Works for both email/password and OAuth (Google) sign-ins.
+ *
+ * @param accessToken  The Supabase JWT from the Authorization header.
+ * @param fullName     Optional display name supplied by the frontend (email sign-up).
+ */
+export const syncUser = async (accessToken: string, fullName?: string) => {
+  const { data, error } = await supabase.auth.getUser(accessToken);
 
   if (error || !data.user) {
-    throw new Error(error?.message ?? 'Failed to create auth user');
+    throw new Error('Invalid or expired access token.');
   }
 
-  // 2. Store profile in our DB using the Supabase-issued UUID
-  const user = await prisma.user.create({
-    data: {
-      id: data.user.id,
-      full_name: dto.full_name,
-      email: dto.email,
-      contact_number: dto.contact_number ?? null,
-      gender: dto.gender ?? null,
-      address: dto.address ?? null,
-      date_of_birth: dto.date_of_birth ? new Date(dto.date_of_birth) : null,
+  const { id, email, user_metadata } = data.user;
+
+  if (!email) {
+    throw new Error('No email associated with this account.');
+  }
+
+  // Resolve display name: caller-supplied > OAuth metadata > empty string
+  const resolvedName =
+    fullName ??
+    (user_metadata['full_name'] as string | undefined) ??
+    (user_metadata['name'] as string | undefined) ??
+    '';
+
+  // Upsert: create profile on first sync, otherwise leave existing data intact.
+  const user = await prisma.user.upsert({
+    where: { id },
+    update: {},
+    create: {
+      id,
+      email,
+      full_name: resolvedName,
       role: 'USER',
       account_status: 'PENDING',
     },
   });
 
   return user;
-};
-
-export const login = async (dto: LoginDto) => {
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email: dto.email,
-    password: dto.password,
-  });
-
-  if (error || !data.session) {
-    throw new Error(error?.message ?? 'Invalid credentials');
-  }
-
-  return {
-    access_token: data.session.access_token,
-    refresh_token: data.session.refresh_token,
-  };
 };
