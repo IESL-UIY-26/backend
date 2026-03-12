@@ -1,6 +1,19 @@
 import type { Request, Response, NextFunction } from 'express';
 import * as TeamsService from './teams.service';
-import { CreateTeamSchema, UpdateTeamSchema } from './teams.model';
+import { CreateTeamSchema, UpdateTeamSchema, UpdateTeamSupervisorSchema } from './teams.model';
+
+export const getMyTeam = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const team = await TeamsService.getMyTeam(req.user!.id);
+    res.json({ success: true, data: team });
+  } catch (err) {
+    next(err);
+  }
+};
 
 export const getTeams = async (
   _req: Request,
@@ -79,6 +92,20 @@ export const deleteTeam = async (
   try {
     await TeamsService.deleteTeam(req.params.id);
     res.json({ success: true });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const updateTeamSupervisor = async (
+  req: Request<{ id: string }>,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const data = UpdateTeamSupervisorSchema.parse(req.body);
+    const team = await TeamsService.updateTeamSupervisor(req.params.id, req.user!.id, data);
+    res.json({ success: true, data: team });
   } catch (err) {
     next(err);
   }

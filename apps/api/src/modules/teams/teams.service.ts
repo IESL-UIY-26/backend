@@ -39,7 +39,31 @@ export const createTeam = async (data: CreateTeamDto) => {
       },
     });
 
-    // 4. Create team members
+    // 4. Guard: reject any user_id already in a team
+    const userIds = data.members
+      .map((m) => m.user_id)
+      .filter((id): id is string => id !== undefined);
+
+    const alreadyMembers = await tx.teamMember.findMany({
+      where: { user_id: { in: userIds } },
+      select: {
+        user_id: true,
+        user: { select: { full_name: true, email: true } },
+      },
+    });
+
+    if (alreadyMembers.length > 0) {
+      const names = alreadyMembers
+        .map((m) => `${m.user.full_name} (${m.user.email})`)
+        .join(', ');
+      const err = new Error(
+        `The following users are already in a team: ${names}`
+      ) as Error & { statusCode: number };
+      err.statusCode = 409;
+      throw err;
+    }
+
+    // 5. Create team members
     const members = await Promise.all(
       data.members.map((member) =>
         tx.teamMember.create({
@@ -62,6 +86,26 @@ export const createTeam = async (data: CreateTeamDto) => {
       members,
     };
   }, TX_OPTS);
+};
+
+export const getMyTeam = async (userId: string) => {
+  const membership = await prisma.teamMember.findFirst({
+    where: { user_id: userId },
+    include: {
+      team: {
+        include: {
+          university: true,
+          supervisor: true,
+          coSupervisor: true,
+          members: {
+            include: { user: { select: { id: true, full_name: true, email: true } } },
+            orderBy: { created_at: 'asc' },
+          },
+        },
+      },
+    },
+  });
+  return membership?.team ?? null;
 };
 
 export const getTeams = async () => {
@@ -90,6 +134,17 @@ export const getTeamById = async (id: string) => {
       },
     },
   });
+};
+
+export const isTeamLeader = async (userId: string, teamId: string) => {
+  const teamMember = await prisma.teamMember.findFirst({
+    where: {
+      user_id: userId,
+      team_id: teamId,
+      role: 'LEADER',
+    },
+  });
+  return !!teamMember;
 };
 
 export const updateTeam = async (id: string, data: UpdateTeamDto) => {
@@ -177,4 +232,39 @@ export const deleteTeam = async (id: string) => {
     await tx.teamMember.deleteMany({ where: { team_id: id } });
     return tx.team.delete({ where: { id } });
   }, TX_OPTS);
+};
+
+export const updateTeamSupervisor = async (
+  teamId: string,
+  userId: string,
+  data: { supervisor_id?: string | null; co_supervisor_id?: string | null }
+) => {
+  // Check if user is team leader
+  const isLeader = await isTeamLeader(userId, teamId);
+  if (!isLeader) {
+    const err = new Error('Only team leader can change supervisor data') as Error & {
+      statusCode: number;
+    };
+    err.statusCode = 403;
+    throw err;
+  }
+
+  // Update team with new supervisor IDs
+  const team = await prisma.team.update({
+    where: { id: teamId },
+    data: {
+      ...(data.supervisor_id !== undefined && { supervisor_id: data.supervisor_id }),
+      ...(data.co_supervisor_id !== undefined && { co_supervisor_id: data.co_supervisor_id }),
+    },
+    include: {
+      university: true,
+      supervisor: true,
+      coSupervisor: true,
+      members: {
+        include: { user: { select: { id: true, full_name: true, email: true } } },
+      },
+    },
+  });
+
+  return team;
 };

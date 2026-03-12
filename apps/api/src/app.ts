@@ -5,6 +5,7 @@ import sessionsRoutes from './modules/sessions/sessions.routes';
 import universitiesRoutes from './modules/universities/universities.routes';
 import teamsRoutes from './modules/teams/teams.routes';
 import usersRoutes from './modules/users/user.routes';
+import projectsRoutes from './modules/projects/projects.routes';
 import { errorHandler } from './middlewares/error.middleware';
 
 const app = express();
@@ -23,6 +24,7 @@ app.use('/api/sessions', sessionsRoutes);
 app.use('/api/universities', universitiesRoutes);
 app.use('/api/teams', teamsRoutes);
 app.use('/api/users', usersRoutes);
+app.use('/api', projectsRoutes);
 
 // Global error handler (must be last)
 app.use(errorHandler);
