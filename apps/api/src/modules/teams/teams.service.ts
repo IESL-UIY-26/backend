@@ -39,7 +39,31 @@ export const createTeam = async (data: CreateTeamDto) => {
       },
     });
 
-    // 4. Create team members
+    // 4. Guard: reject any user_id already in a team
+    const userIds = data.members
+      .map((m) => m.user_id)
+      .filter((id): id is string => id !== undefined);
+
+    const alreadyMembers = await tx.teamMember.findMany({
+      where: { user_id: { in: userIds } },
+      select: {
+        user_id: true,
+        user: { select: { full_name: true, email: true } },
+      },
+    });
+
+    if (alreadyMembers.length > 0) {
+      const names = alreadyMembers
+        .map((m) => `${m.user.full_name} (${m.user.email})`)
+        .join(', ');
+      const err = new Error(
+        `The following users are already in a team: ${names}`
+      ) as Error & { statusCode: number };
+      err.statusCode = 409;
+      throw err;
+    }
+
+    // 5. Create team members
     const members = await Promise.all(
       data.members.map((member) =>
         tx.teamMember.create({
