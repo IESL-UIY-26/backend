@@ -88,6 +88,26 @@ export const createTeam = async (data: CreateTeamDto) => {
   }, TX_OPTS);
 };
 
+export const getMyTeam = async (userId: string) => {
+  const membership = await prisma.teamMember.findFirst({
+    where: { user_id: userId },
+    include: {
+      team: {
+        include: {
+          university: true,
+          supervisor: true,
+          coSupervisor: true,
+          members: {
+            include: { user: { select: { id: true, full_name: true, email: true } } },
+            orderBy: { created_at: 'asc' },
+          },
+        },
+      },
+    },
+  });
+  return membership?.team ?? null;
+};
+
 export const getTeams = async () => {
   return prisma.team.findMany({
     orderBy: { created_at: 'desc' },

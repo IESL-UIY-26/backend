@@ -2,6 +2,19 @@ import type { Request, Response, NextFunction } from 'express';
 import * as TeamsService from './teams.service';
 import { CreateTeamSchema, UpdateTeamSchema } from './teams.model';
 
+export const getMyTeam = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const team = await TeamsService.getMyTeam(req.user!.id);
+    res.json({ success: true, data: team });
+  } catch (err) {
+    next(err);
+  }
+};
+
 export const getTeams = async (
   _req: Request,
   res: Response,

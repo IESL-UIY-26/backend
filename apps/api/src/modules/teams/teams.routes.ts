@@ -5,6 +5,7 @@ import * as TeamsController from './teams.controller';
 const router = Router();
 
 router.get('/', protect, requireAdmin, TeamsController.getTeams);
+router.get('/my-team', protect, TeamsController.getMyTeam);
 router.get('/:id', protect, TeamsController.getTeamById);
 router.post('/', protect, TeamsController.createTeam);
 router.patch('/:id', protect, requireAdmin, TeamsController.updateTeam);
