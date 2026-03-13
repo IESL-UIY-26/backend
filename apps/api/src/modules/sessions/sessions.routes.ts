@@ -22,4 +22,11 @@ router.delete('/:sessionId/register', protect, SessionsController.unregisterFrom
 router.get('/:sessionId/registration-status', protect, SessionsController.getMyRegistrationStatus);
 router.get('/:sessionId/participants', protect, requireAdmin, SessionsController.getSessionParticipants);
 
+// ─── Session Feedback routes ──────────────────────────────────────────────────
+router.post('/:sessionId/feedback', protect, SessionsController.createSessionFeedback);
+router.patch('/:sessionId/feedback', protect, SessionsController.updateMySessionFeedback);
+router.delete('/:sessionId/feedback', protect, SessionsController.deleteMySessionFeedback);
+router.get('/:sessionId/feedback/me', protect, SessionsController.getMySessionFeedback);
+router.get('/:sessionId/feedback', protect, requireAdmin, SessionsController.getSessionFeedbacksForAdmin);
+
 export default router;

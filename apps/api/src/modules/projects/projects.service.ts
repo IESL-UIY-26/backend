@@ -5,21 +5,25 @@ export class ProjectsService {
   static async getAllProjectsPublic() {
     return prisma.project.findMany({
       orderBy: { created_at: 'desc' },
-      include: {
+      select: {
+        id: true,
+        team_id: true,
+        title: true,
+        description: true,
+        image_url: true,
+        youtube_link: true,
+        pdf: true,
+        github_url: true,
+        vote_count: true,
+        created_at: true,
         team: {
-          include: {
-            university: true,
-            supervisor: true,
-            coSupervisor: true,
-            members: {
-              include: {
-                user: {
-                  select: {
-                    id: true,
-                    full_name: true,
-                    email: true,
-                  },
-                },
+          select: {
+            id: true,
+            team_name: true,
+            university: {
+              select: {
+                id: true,
+                name: true,
               },
             },
           },

@@ -142,3 +142,144 @@ export const getSessionParticipants = async (sessionId: string) => {
     orderBy: { created_at: 'asc' },
   });
 };
+
+// ─── Session Feedback ─────────────────────────────────────────────────────────
+
+export const createSessionFeedback = async (
+  sessionId: string,
+  userId: string,
+  data: { rating: number; comment?: string }
+) => {
+  const session = await prisma.session.findUnique({ where: { id: sessionId } });
+  if (!session) {
+    const err = new Error('Session not found');
+    (err as any).statusCode = 404;
+    throw err;
+  }
+
+  const existing = await prisma.sessionFeedback.findFirst({
+    where: { session_id: sessionId, user_id: userId },
+    select: { id: true },
+  });
+
+  if (existing) {
+    const err = new Error('Feedback already exists for this session. Please edit your existing feedback.');
+    (err as any).statusCode = 409;
+    throw err;
+  }
+
+  return prisma.sessionFeedback.create({
+    data: {
+      session_id: sessionId,
+      user_id: userId,
+      rating: data.rating,
+      comment: data.comment || null,
+    },
+  });
+};
+
+export const updateMySessionFeedback = async (
+  sessionId: string,
+  userId: string,
+  data: { rating?: number; comment?: string }
+) => {
+  const feedback = await prisma.sessionFeedback.findFirst({
+    where: { session_id: sessionId, user_id: userId },
+    select: { id: true },
+  });
+
+  if (!feedback) {
+    const othersFeedback = await prisma.sessionFeedback.findFirst({
+      where: {
+        session_id: sessionId,
+        user_id: { not: userId },
+      },
+      select: { id: true },
+    });
+
+    if (othersFeedback) {
+      const err = new Error('Forbidden: You can only edit your own feedback');
+      (err as any).statusCode = 403;
+      throw err;
+    }
+
+    const err = new Error('Feedback not found');
+    (err as any).statusCode = 404;
+    throw err;
+  }
+
+  return prisma.sessionFeedback.update({
+    where: { id: feedback.id },
+    data: {
+      ...(data.rating !== undefined && { rating: data.rating }),
+      ...(data.comment !== undefined && { comment: data.comment || null }),
+    },
+  });
+};
+
+export const deleteMySessionFeedback = async (sessionId: string, userId: string) => {
+  const feedback = await prisma.sessionFeedback.findFirst({
+    where: { session_id: sessionId, user_id: userId },
+    select: { id: true },
+  });
+
+  if (!feedback) {
+    const othersFeedback = await prisma.sessionFeedback.findFirst({
+      where: {
+        session_id: sessionId,
+        user_id: { not: userId },
+      },
+      select: { id: true },
+    });
+
+    if (othersFeedback) {
+      const err = new Error('Forbidden: You can only delete your own feedback');
+      (err as any).statusCode = 403;
+      throw err;
+    }
+
+    const err = new Error('Feedback not found');
+    (err as any).statusCode = 404;
+    throw err;
+  }
+
+  return prisma.sessionFeedback.delete({ where: { id: feedback.id } });
+};
+
+export const getSessionFeedbacksForAdmin = async (sessionId: string) => {
+  const session = await prisma.session.findUnique({ where: { id: sessionId } });
+  if (!session) {
+    const err = new Error('Session not found');
+    (err as any).statusCode = 404;
+    throw err;
+  }
+
+  return prisma.sessionFeedback.findMany({
+    where: { session_id: sessionId },
+    include: {
+      user: {
+        select: {
+          id: true,
+          full_name: true,
+          email: true,
+        },
+      },
+    },
+    orderBy: { created_at: 'desc' },
+  });
+};
+
+export const getMySessionFeedback = async (sessionId: string, userId: string) => {
+  const session = await prisma.session.findUnique({ where: { id: sessionId } });
+  if (!session) {
+    const err = new Error('Session not found');
+    (err as any).statusCode = 404;
+    throw err;
+  }
+
+  const feedback = await prisma.sessionFeedback.findFirst({
+    where: { session_id: sessionId, user_id: userId },
+  });
+
+  return feedback;
+};

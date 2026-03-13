@@ -39,5 +39,17 @@ export const UpdateSessionSchema = SessionSchemaBase.partial().superRefine((data
   }
 });
 
+export const CreateSessionFeedbackSchema = z.object({
+  rating: z.number().int().min(1).max(5),
+  comment: z.string().max(2000).optional().or(z.literal('')),
+});
+
+export const UpdateSessionFeedbackSchema = z.object({
+  rating: z.number().int().min(1).max(5).optional(),
+  comment: z.string().max(2000).optional().or(z.literal('')),
+});
+
 export type CreateSessionDto = z.infer<typeof CreateSessionSchema>;
 export type UpdateSessionDto = z.infer<typeof UpdateSessionSchema>;
+export type CreateSessionFeedbackDto = z.infer<typeof CreateSessionFeedbackSchema>;
+export type UpdateSessionFeedbackDto = z.infer<typeof UpdateSessionFeedbackSchema>;
