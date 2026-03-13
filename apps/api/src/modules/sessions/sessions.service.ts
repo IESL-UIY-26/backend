@@ -71,3 +71,215 @@ export const updateSession = async (
 export const deleteSession = async (id: string) => {
   return prisma.session.delete({ where: { id } });
 };
+
+// ─── Session Registration ─────────────────────────────────────────────────────
+
+export const registerForSession = async (sessionId: string, userId: string) => {
+  const session = await prisma.session.findUnique({ where: { id: sessionId } });
+  if (!session) {
+    const err = new Error('Session not found');
+    (err as any).statusCode = 404;
+    throw err;
+  }
+
+  const existing = await prisma.sessionRegistration.findUnique({
+    where: { session_id_user_id: { session_id: sessionId, user_id: userId } },
+  });
+  if (existing) {
+    const err = new Error('Already registered for this session');
+    (err as any).statusCode = 409;
+    throw err;
+  }
+
+  return prisma.sessionRegistration.create({
+    data: { session_id: sessionId, user_id: userId },
+  });
+};
+
+export const unregisterFromSession = async (sessionId: string, userId: string) => {
+  const existing = await prisma.sessionRegistration.findUnique({
+    where: { session_id_user_id: { session_id: sessionId, user_id: userId } },
+  });
+  if (!existing) {
+    const err = new Error('Registration not found');
+    (err as any).statusCode = 404;
+    throw err;
+  }
+
+  return prisma.sessionRegistration.delete({
+    where: { session_id_user_id: { session_id: sessionId, user_id: userId } },
+  });
+};
+
+export const getMyRegistrations = async (userId: string) => {
+  return prisma.sessionRegistration.findMany({
+    where: { user_id: userId },
+    include: { session: true },
+    orderBy: { created_at: 'desc' },
+  });
+};
+
+export const getMyRegistrationStatus = async (sessionId: string, userId: string) => {
+  const registration = await prisma.sessionRegistration.findUnique({
+    where: { session_id_user_id: { session_id: sessionId, user_id: userId } },
+  });
+  return { registered: !!registration, registration: registration ?? null };
+};
+
+export const getSessionParticipants = async (sessionId: string) => {
+  const session = await prisma.session.findUnique({ where: { id: sessionId } });
+  if (!session) {
+    const err = new Error('Session not found');
+    (err as any).statusCode = 404;
+    throw err;
+  }
+
+  return prisma.sessionRegistration.findMany({
+    where: { session_id: sessionId },
+    include: {
+      user: { select: { id: true, full_name: true, email: true } },
+    },
+    orderBy: { created_at: 'asc' },
+  });
+};
+
+// ─── Session Feedback ─────────────────────────────────────────────────────────
+
+export const createSessionFeedback = async (
+  sessionId: string,
+  userId: string,
+  data: { rating: number; comment?: string }
+) => {
+  const session = await prisma.session.findUnique({ where: { id: sessionId } });
+  if (!session) {
+    const err = new Error('Session not found');
+    (err as any).statusCode = 404;
+    throw err;
+  }
+
+  const existing = await prisma.sessionFeedback.findFirst({
+    where: { session_id: sessionId, user_id: userId },
+    select: { id: true },
+  });
+
+  if (existing) {
+    const err = new Error('Feedback already exists for this session. Please edit your existing feedback.');
+    (err as any).statusCode = 409;
+    throw err;
+  }
+
+  return prisma.sessionFeedback.create({
+    data: {
+      session_id: sessionId,
+      user_id: userId,
+      rating: data.rating,
+      comment: data.comment || null,
+    },
+  });
+};
+
+export const updateMySessionFeedback = async (
+  sessionId: string,
+  userId: string,
+  data: { rating?: number; comment?: string }
+) => {
+  const feedback = await prisma.sessionFeedback.findFirst({
+    where: { session_id: sessionId, user_id: userId },
+    select: { id: true },
+  });
+
+  if (!feedback) {
+    const othersFeedback = await prisma.sessionFeedback.findFirst({
+      where: {
+        session_id: sessionId,
+        user_id: { not: userId },
+      },
+      select: { id: true },
+    });
+
+    if (othersFeedback) {
+      const err = new Error('Forbidden: You can only edit your own feedback');
+      (err as any).statusCode = 403;
+      throw err;
+    }
+
+    const err = new Error('Feedback not found');
+    (err as any).statusCode = 404;
+    throw err;
+  }
+
+  return prisma.sessionFeedback.update({
+    where: { id: feedback.id },
+    data: {
+      ...(data.rating !== undefined && { rating: data.rating }),
+      ...(data.comment !== undefined && { comment: data.comment || null }),
+    },
+  });
+};
+
+export const deleteMySessionFeedback = async (sessionId: string, userId: string) => {
+  const feedback = await prisma.sessionFeedback.findFirst({
+    where: { session_id: sessionId, user_id: userId },
+    select: { id: true },
+  });
+
+  if (!feedback) {
+    const othersFeedback = await prisma.sessionFeedback.findFirst({
+      where: {
+        session_id: sessionId,
+        user_id: { not: userId },
+      },
+      select: { id: true },
+    });
+
+    if (othersFeedback) {
+      const err = new Error('Forbidden: You can only delete your own feedback');
+      (err as any).statusCode = 403;
+      throw err;
+    }
+
+    const err = new Error('Feedback not found');
+    (err as any).statusCode = 404;
+    throw err;
+  }
+
+  return prisma.sessionFeedback.delete({ where: { id: feedback.id } });
+};
+
+export const getSessionFeedbacksForAdmin = async (sessionId: string) => {
+  const session = await prisma.session.findUnique({ where: { id: sessionId } });
+  if (!session) {
+    const err = new Error('Session not found');
+    (err as any).statusCode = 404;
+    throw err;
+  }
+
+  return prisma.sessionFeedback.findMany({
+    where: { session_id: sessionId },
+    include: {
+      user: {
+        select: {
+          id: true,
+          full_name: true,
+          email: true,
+        },
+      },
+    },
+    orderBy: { created_at: 'desc' },
+  });
+};
+
+export const getMySessionFeedback = async (sessionId: string, userId: string) => {
+  const session = await prisma.session.findUnique({ where: { id: sessionId } });
+  if (!session) {
+    const err = new Error('Session not found');
+    (err as any).statusCode = 404;
+    throw err;
+  }
+
+  const feedback = await prisma.sessionFeedback.findFirst({
+    where: { session_id: sessionId, user_id: userId },
+  });
+
+  return feedback;
+};

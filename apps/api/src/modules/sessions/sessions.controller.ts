@@ -1,6 +1,11 @@
 import type { Request, Response, NextFunction } from 'express';
 import * as SessionsService from './sessions.service';
-import { CreateSessionSchema, UpdateSessionSchema } from './sessions.model';
+import {
+  CreateSessionFeedbackSchema,
+  CreateSessionSchema,
+  UpdateSessionFeedbackSchema,
+  UpdateSessionSchema,
+} from './sessions.model';
 
 export const getSessions = async (
   _req: Request,
@@ -67,6 +72,142 @@ export const deleteSession = async (
   try {
     await SessionsService.deleteSession(req.params.id);
     res.json({ success: true });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// ─── Session Registration ─────────────────────────────────────────────────────
+
+export const registerForSession = async (
+  req: Request<{ sessionId: string }>,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const registration = await SessionsService.registerForSession(req.params.sessionId, req.user!.id);
+    res.status(201).json({ success: true, data: registration });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const unregisterFromSession = async (
+  req: Request<{ sessionId: string }>,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    await SessionsService.unregisterFromSession(req.params.sessionId, req.user!.id);
+    res.json({ success: true });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const getMyRegistrations = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const registrations = await SessionsService.getMyRegistrations(req.user!.id);
+    res.json({ success: true, data: registrations });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const getMyRegistrationStatus = async (
+  req: Request<{ sessionId: string }>,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const status = await SessionsService.getMyRegistrationStatus(req.params.sessionId, req.user!.id);
+    res.json({ success: true, data: status });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const getSessionParticipants = async (
+  req: Request<{ sessionId: string }>,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const participants = await SessionsService.getSessionParticipants(req.params.sessionId);
+    res.json({ success: true, data: participants });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// ─── Session Feedback ─────────────────────────────────────────────────────────
+
+export const createSessionFeedback = async (
+  req: Request<{ sessionId: string }>,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const data = CreateSessionFeedbackSchema.parse(req.body);
+    const feedback = await SessionsService.createSessionFeedback(req.params.sessionId, req.user!.id, data);
+    res.status(201).json({ success: true, data: feedback });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const updateMySessionFeedback = async (
+  req: Request<{ sessionId: string }>,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const data = UpdateSessionFeedbackSchema.parse(req.body);
+    const feedback = await SessionsService.updateMySessionFeedback(req.params.sessionId, req.user!.id, data);
+    res.json({ success: true, data: feedback });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const deleteMySessionFeedback = async (
+  req: Request<{ sessionId: string }>,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    await SessionsService.deleteMySessionFeedback(req.params.sessionId, req.user!.id);
+    res.json({ success: true });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const getSessionFeedbacksForAdmin = async (
+  req: Request<{ sessionId: string }>,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const feedbacks = await SessionsService.getSessionFeedbacksForAdmin(req.params.sessionId);
+    res.json({ success: true, data: feedbacks });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const getMySessionFeedback = async (
+  req: Request<{ sessionId: string }>,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const feedback = await SessionsService.getMySessionFeedback(req.params.sessionId, req.user!.id);
+    res.json({ success: true, data: feedback });
   } catch (err) {
     next(err);
   }
