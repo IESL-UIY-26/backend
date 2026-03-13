@@ -6,6 +6,7 @@ import universitiesRoutes from './modules/universities/universities.routes';
 import teamsRoutes from './modules/teams/teams.routes';
 import usersRoutes from './modules/users/user.routes';
 import projectsRoutes from './modules/projects/projects.routes';
+import votingRoutes from './modules/voting/voting.routes';
 import { errorHandler } from './middlewares/error.middleware';
 
 const app = express();
@@ -25,6 +26,7 @@ app.use('/api/universities', universitiesRoutes);
 app.use('/api/teams', teamsRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api', projectsRoutes);
+app.use('/api', votingRoutes);
 
 // API not found handler (keeps 404 responses JSON and explicit)
 app.use('/api', (_req, res) => {
