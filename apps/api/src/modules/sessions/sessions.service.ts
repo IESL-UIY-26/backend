@@ -4,6 +4,20 @@ export const getSessions = async () => {
   return prisma.session.findMany({ orderBy: { session_date: 'asc' } });
 };
 
+export const getAvailableSessions = async () => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  return prisma.session.findMany({
+    where: {
+      session_date: {
+        gte: today,
+      },
+    },
+    orderBy: [{ session_date: 'asc' }, { session_time: 'asc' }],
+  });
+};
+
 export const createSession = async (data: {
   title: string;
   description?: string;

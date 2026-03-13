@@ -4,6 +4,9 @@ import * as SessionsController from './sessions.controller';
 
 const router = Router();
 
+// Public route (no authentication required)
+router.get('/available', SessionsController.getAvailableSessions);
+
 router.get('/',protect, SessionsController.getSessions);
 router.post('/', protect, requireAdmin, SessionsController.createSession);
 router.patch('/:id', protect, requireAdmin, SessionsController.updateSession);

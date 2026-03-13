@@ -15,6 +15,19 @@ export const getSessions = async (
   }
 };
 
+export const getAvailableSessions = async (
+  _req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const sessions = await SessionsService.getAvailableSessions();
+    res.json({ success: true, data: sessions });
+  } catch (err) {
+    next(err);
+  }
+};
+
 export const createSession = async (
   req: Request,
   res: Response,
