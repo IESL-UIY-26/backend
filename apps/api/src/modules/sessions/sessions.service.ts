@@ -91,9 +91,30 @@ export const registerForSession = async (sessionId: string, userId: string) => {
     throw err;
   }
 
-  return prisma.sessionRegistration.create({
-    data: { session_id: sessionId, user_id: userId },
-  });
+  try {
+    const [registration] = await prisma.$transaction([
+      prisma.sessionRegistration.create({
+        data: { session_id: sessionId, user_id: userId },
+      }),
+      prisma.session.update({
+        where: { id: sessionId },
+        data: {
+          count: {
+            increment: 1,
+          },
+        },
+      }),
+    ]);
+
+    return registration;
+  } catch (error: any) {
+    if (error?.code === 'P2002') {
+      const err = new Error('Already registered for this session');
+      (err as any).statusCode = 409;
+      throw err;
+    }
+    throw error;
+  }
 };
 
 export const unregisterFromSession = async (sessionId: string, userId: string) => {
@@ -106,9 +127,21 @@ export const unregisterFromSession = async (sessionId: string, userId: string) =
     throw err;
   }
 
-  return prisma.sessionRegistration.delete({
-    where: { session_id_user_id: { session_id: sessionId, user_id: userId } },
-  });
+  const [registration] = await prisma.$transaction([
+    prisma.sessionRegistration.delete({
+      where: { session_id_user_id: { session_id: sessionId, user_id: userId } },
+    }),
+    prisma.session.update({
+      where: { id: sessionId },
+      data: {
+        count: {
+          decrement: 1,
+        },
+      },
+    }),
+  ]);
+
+  return registration;
 };
 
 export const getMyRegistrations = async (userId: string) => {

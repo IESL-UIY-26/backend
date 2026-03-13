@@ -132,6 +132,7 @@ model Session {
   session_date     DateTime
   session_time     DateTime
   duration_minutes Int
+  count            Int      @default(0)
   host_name        String?
   created_by       String   @db.Uuid
   created_at       DateTime @default(now())
