@@ -26,6 +26,14 @@ app.use('/api/teams', teamsRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api', projectsRoutes);
 
+// API not found handler (keeps 404 responses JSON and explicit)
+app.use('/api', (_req, res) => {
+  res.status(404).json({
+    success: false,
+    message: 'API route not found',
+  });
+});
+
 // Global error handler (must be last)
 app.use(errorHandler);
 
