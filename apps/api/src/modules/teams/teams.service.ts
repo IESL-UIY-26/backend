@@ -242,6 +242,29 @@ export const updateTeam = async (id: string, data: UpdateTeamDto) => {
   }, TX_OPTS);
 };
 
+export const updateMyTeam = async (userId: string, data: UpdateTeamDto) => {
+  const membership = await prisma.teamMember.findFirst({
+    where: { user_id: userId },
+    select: { team_id: true, role: true },
+  });
+
+  if (!membership) {
+    const err = new Error('You are not part of any team') as Error & { statusCode: number };
+    err.statusCode = 404;
+    throw err;
+  }
+
+  if (membership.role !== 'LEADER') {
+    const err = new Error(
+      'Only team leaders can update team details. You cannot update another team.'
+    ) as Error & { statusCode: number };
+    err.statusCode = 403;
+    throw err;
+  }
+
+  return updateTeam(membership.team_id, data);
+};
+
 export const deleteTeam = async (id: string) => {
   return prisma.$transaction(async (tx) => {
     // Remove members first to satisfy FK constraints
