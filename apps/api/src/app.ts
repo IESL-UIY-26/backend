@@ -6,6 +6,7 @@ import universitiesRoutes from './modules/universities/universities.routes';
 import teamsRoutes from './modules/teams/teams.routes';
 import usersRoutes from './modules/users/user.routes';
 import projectsRoutes from './modules/projects/projects.routes';
+import uploadsRoutes from './modules/uploads/uploads.routes';
 import votingRoutes from './modules/voting/voting.routes';
 import { errorHandler } from './middlewares/error.middleware';
 
@@ -25,6 +26,7 @@ app.use('/api/sessions', sessionsRoutes);
 app.use('/api/universities', universitiesRoutes);
 app.use('/api/teams', teamsRoutes);
 app.use('/api/users', usersRoutes);
+app.use('/api/uploads', uploadsRoutes);
 app.use('/api', projectsRoutes);
 app.use('/api', votingRoutes);
 
