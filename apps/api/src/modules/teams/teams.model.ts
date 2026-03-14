@@ -22,7 +22,7 @@ export const CreateTeamSchema = z.object({
   co_supervisor: CreateSupervisorSchema.optional(),
   members: z
     .array(CreateTeamMemberSchema)
-    .min(1, 'At least one team member is required'),
+    .min(2, 'Team must have at least 2 members (including the leader)'),
 });
 
 export const UpdateSupervisorSchema = CreateSupervisorSchema.partial();
