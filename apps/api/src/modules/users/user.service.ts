@@ -8,6 +8,7 @@ export const searchUsersByEmail = async (email: string) => {
         contains: email,
         mode: 'insensitive',
       },
+      role: { not: 'ADMIN' },
     },
     select: {
       id: true,
