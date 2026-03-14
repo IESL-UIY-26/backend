@@ -70,6 +70,20 @@ export const createTeam = async (
   }
 };
 
+export const updateMyTeam = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const data = UpdateTeamSchema.parse(req.body);
+    const team = await TeamsService.updateMyTeam(req.user!.id, data);
+    res.json({ success: true, data: team });
+  } catch (err) {
+    next(err);
+  }
+};
+
 export const updateTeam = async (
   req: Request<{ id: string }>,
   res: Response,
