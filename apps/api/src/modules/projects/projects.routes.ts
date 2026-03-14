@@ -6,6 +6,7 @@ const router = Router({ mergeParams: true });
 
 // Public route (no authentication required)
 router.get('/public/projects', ProjectsController.getAllProjectsPublic);
+router.get('/public/projects/search', ProjectsController.searchProjectsByName);
 
 // All routes require authentication
 router.use(protect);

@@ -23,6 +23,27 @@ export class ProjectsController {
     });
   }
 
+  static async searchProjectsByName(req: Request, res: Response) {
+    const q = typeof req.query.q === 'string' ? req.query.q.trim() : '';
+    const rawPage = Array.isArray(req.query.page) ? req.query.page[0] : req.query.page;
+    const parsedPage = Number.parseInt(String(rawPage ?? '1'), 10);
+    const page = Number.isNaN(parsedPage) || parsedPage < 1 ? 1 : parsedPage;
+
+    const limit = 10;
+    const result = await ProjectsService.searchProjectsByName(q, page, limit);
+
+    res.json({
+      success: true,
+      data: result.projects,
+      pagination: {
+        page,
+        limit,
+        total: result.total,
+        totalPages: result.totalPages,
+      },
+    });
+  }
+
   static async createProject(req: Request, res: Response) {
     const teamId = req.params.teamId as string;
     const userId = req.user!.id;

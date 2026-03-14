@@ -7,6 +7,35 @@ import {
   UpdateSessionSchema,
 } from './sessions.model';
 
+export const searchSessionsByDate = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const date = typeof req.query.date === 'string' ? req.query.date.trim() : '';
+    const rawPage = Array.isArray(req.query.page) ? req.query.page[0] : req.query.page;
+    const parsedPage = Number.parseInt(String(rawPage ?? '1'), 10);
+    const page = Number.isNaN(parsedPage) || parsedPage < 1 ? 1 : parsedPage;
+
+    const limit = 10;
+    const result = await SessionsService.searchSessionsByDate(date, page, limit);
+
+    res.json({
+      success: true,
+      data: result.sessions,
+      pagination: {
+        page,
+        limit,
+        total: result.total,
+        totalPages: result.totalPages,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 export const getSessions = async (
   _req: Request,
   res: Response,

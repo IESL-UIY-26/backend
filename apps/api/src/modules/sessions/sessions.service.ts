@@ -1,5 +1,41 @@
 import { prisma } from '../../config/db';
 
+export const searchSessionsByDate = async (date: string, page = 1, limit = 10) => {
+  const day = new Date(date);
+  if (Number.isNaN(day.getTime())) {
+    const err = new Error('Invalid date format. Use YYYY-MM-DD.');
+    (err as any).statusCode = 400;
+    throw err;
+  }
+
+  const start = new Date(day);
+  start.setHours(0, 0, 0, 0);
+  const end = new Date(day);
+  end.setHours(23, 59, 59, 999);
+
+  const where = {
+    session_date: { gte: start, lte: end },
+  };
+
+  const skip = (page - 1) * limit;
+
+  const [sessions, total] = await prisma.$transaction([
+    prisma.session.findMany({
+      where,
+      orderBy: [{ session_time: 'asc' }],
+      skip,
+      take: limit,
+    }),
+    prisma.session.count({ where }),
+  ]);
+
+  return {
+    sessions,
+    total,
+    totalPages: total === 0 ? 0 : Math.ceil(total / limit),
+  };
+};
+
 export const getSessions = async () => {
   return prisma.session.findMany({ orderBy: { session_date: 'asc' } });
 };
