@@ -5,7 +5,7 @@ export class ProjectsService {
   static async getAllProjectsPublic(page = 1, limit = 10) {
     const skip = (page - 1) * limit;
 
-    const [projects, total] = await prisma.$transaction([
+    const [projects, total] = await Promise.all([
       prisma.project.findMany({
         orderBy: { created_at: 'desc' },
         skip,
@@ -54,7 +54,7 @@ export class ProjectsService {
       },
     };
 
-    const [projects, total] = await prisma.$transaction([
+    const [projects, total] = await Promise.all([
       prisma.project.findMany({
         where,
         orderBy: { created_at: 'desc' },
