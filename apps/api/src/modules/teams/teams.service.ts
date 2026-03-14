@@ -39,10 +39,26 @@ export const createTeam = async (data: CreateTeamDto) => {
       },
     });
 
-    // 4. Guard: reject any user_id already in a team
+    // 4. Guard: reject any user_id already in a team or with ADMIN role
     const userIds = data.members
       .map((m) => m.user_id)
       .filter((id): id is string => id !== undefined);
+
+    const adminMembers = await tx.user.findMany({
+      where: { id: { in: userIds }, role: 'ADMIN' },
+      select: { full_name: true, email: true },
+    });
+
+    if (adminMembers.length > 0) {
+      const names = adminMembers
+        .map((u) => `${u.full_name} (${u.email})`)
+        .join(', ');
+      const err = new Error(
+        `The following users are admins and cannot be added to a team: ${names}`
+      ) as Error & { statusCode: number };
+      err.statusCode = 400;
+      throw err;
+    }
 
     const alreadyMembers = await tx.teamMember.findMany({
       where: { user_id: { in: userIds } },
