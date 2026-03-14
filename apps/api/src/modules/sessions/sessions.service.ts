@@ -5,25 +5,15 @@ export const getSessions = async () => {
 };
 
 export const getAvailableSessions = async (page = 1, limit = 10) => {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  const where = {
-    session_date: {
-      gte: today,
-    },
-  };
-
   const skip = (page - 1) * limit;
 
   const [sessions, total] = await prisma.$transaction([
     prisma.session.findMany({
-      where,
-      orderBy: [{ session_date: 'asc' }, { session_time: 'asc' }],
+      orderBy: [{ session_date: 'desc' }, { session_time: 'desc' }],
       skip,
       take: limit,
     }),
-    prisma.session.count({ where }),
+    prisma.session.count(),
   ]);
 
   return {
