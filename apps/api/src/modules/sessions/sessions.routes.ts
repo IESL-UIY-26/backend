@@ -6,6 +6,7 @@ const router = Router();
 
 // ─── Public routes (no auth) ──────────────────────────────────────────────────
 router.get('/available', SessionsController.getAvailableSessions);
+router.get('/search', SessionsController.searchSessionsByDate);
 
 // ─── Auth required ─────────────────────────────────────────────────────────
 // Specific literal paths must come before /:sessionId param routes

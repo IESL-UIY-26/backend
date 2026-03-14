@@ -2,34 +2,97 @@ import { prisma } from '../../config/db';
 import type { CreateProjectDto, UpdateProjectDto } from './projects.dtos';
 
 export class ProjectsService {
-  static async getAllProjectsPublic() {
-    return prisma.project.findMany({
-      orderBy: { created_at: 'desc' },
-      select: {
-        id: true,
-        team_id: true,
-        title: true,
-        description: true,
-        image_url: true,
-        youtube_link: true,
-        pdf: true,
-        github_url: true,
-        vote_count: true,
-        created_at: true,
-        team: {
-          select: {
-            id: true,
-            team_name: true,
-            university: {
-              select: {
-                id: true,
-                name: true,
+  static async getAllProjectsPublic(page = 1, limit = 10) {
+    const skip = (page - 1) * limit;
+
+    const [projects, total] = await prisma.$transaction([
+      prisma.project.findMany({
+        orderBy: { created_at: 'desc' },
+        skip,
+        take: limit,
+        select: {
+          id: true,
+          team_id: true,
+          title: true,
+          description: true,
+          image_url: true,
+          youtube_link: true,
+          pdf: true,
+          github_url: true,
+          vote_count: true,
+          created_at: true,
+          team: {
+            select: {
+              id: true,
+              team_name: true,
+              university: {
+                select: {
+                  id: true,
+                  name: true,
+                },
               },
             },
           },
         },
+      }),
+      prisma.project.count(),
+    ]);
+
+    return {
+      projects,
+      total,
+      totalPages: total === 0 ? 0 : Math.ceil(total / limit),
+    };
+  }
+
+  static async searchProjectsByName(query: string, page = 1, limit = 10) {
+    const skip = (page - 1) * limit;
+    const where = {
+      title: {
+        contains: query,
+        mode: 'insensitive' as const,
       },
-    });
+    };
+
+    const [projects, total] = await prisma.$transaction([
+      prisma.project.findMany({
+        where,
+        orderBy: { created_at: 'desc' },
+        skip,
+        take: limit,
+        select: {
+          id: true,
+          team_id: true,
+          title: true,
+          description: true,
+          image_url: true,
+          youtube_link: true,
+          pdf: true,
+          github_url: true,
+          vote_count: true,
+          created_at: true,
+          team: {
+            select: {
+              id: true,
+              team_name: true,
+              university: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
+            },
+          },
+        },
+      }),
+      prisma.project.count({ where }),
+    ]);
+
+    return {
+      projects,
+      total,
+      totalPages: total === 0 ? 0 : Math.ceil(total / limit),
+    };
   }
 
   /**

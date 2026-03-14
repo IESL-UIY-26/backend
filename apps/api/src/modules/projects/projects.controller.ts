@@ -3,9 +3,45 @@ import { ProjectsService } from './projects.service';
 import { createProjectSchema, updateProjectSchema } from './projects.dtos';
 
 export class ProjectsController {
-  static async getAllProjectsPublic(_req: Request, res: Response) {
-    const projects = await ProjectsService.getAllProjectsPublic();
-    res.json({ success: true, data: projects });
+  static async getAllProjectsPublic(req: Request, res: Response) {
+    const rawPage = Array.isArray(req.query.page) ? req.query.page[0] : req.query.page;
+    const parsedPage = Number.parseInt(String(rawPage ?? '1'), 10);
+    const page = Number.isNaN(parsedPage) || parsedPage < 1 ? 1 : parsedPage;
+
+    const limit = 10;
+    const result = await ProjectsService.getAllProjectsPublic(page, limit);
+
+    res.json({
+      success: true,
+      data: result.projects,
+      pagination: {
+        page,
+        limit,
+        total: result.total,
+        totalPages: result.totalPages,
+      },
+    });
+  }
+
+  static async searchProjectsByName(req: Request, res: Response) {
+    const q = typeof req.query.q === 'string' ? req.query.q.trim() : '';
+    const rawPage = Array.isArray(req.query.page) ? req.query.page[0] : req.query.page;
+    const parsedPage = Number.parseInt(String(rawPage ?? '1'), 10);
+    const page = Number.isNaN(parsedPage) || parsedPage < 1 ? 1 : parsedPage;
+
+    const limit = 10;
+    const result = await ProjectsService.searchProjectsByName(q, page, limit);
+
+    res.json({
+      success: true,
+      data: result.projects,
+      pagination: {
+        page,
+        limit,
+        total: result.total,
+        totalPages: result.totalPages,
+      },
+    });
   }
 
   static async createProject(req: Request, res: Response) {
