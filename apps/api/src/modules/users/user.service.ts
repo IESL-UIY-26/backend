@@ -1,13 +1,23 @@
 import { prisma } from '../../config/db';
 import type { UpdateMyProfileDto } from './user.model';
 
-export const searchUsersByEmail = async (email: string) => {
+export const searchUsers = async (query: string) => {
   const users = await prisma.user.findMany({
     where: {
-      email: {
-        contains: email,
-        mode: 'insensitive',
-      },
+      OR: [
+        {
+          email: {
+            contains: query,
+            mode: 'insensitive',
+          },
+        },
+        {
+          full_name: {
+            contains: query,
+            mode: 'insensitive',
+          },
+        },
+      ],
       role: { not: 'ADMIN' },
     },
     select: {

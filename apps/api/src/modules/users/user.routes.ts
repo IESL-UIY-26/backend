@@ -7,7 +7,7 @@ const router = Router();
 router.get('/me', protect, UserController.getMyProfile);
 router.patch('/me', protect, UserController.updateMyProfile);
 
-// GET /api/users/search?email=<query>
+// GET /api/users/search?q=<query> (matches email or full name)
 router.get('/search', protect, UserController.searchUsers);
 
 export default router;
