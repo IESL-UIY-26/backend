@@ -21,13 +21,28 @@ export const getSessions = async (
 };
 
 export const getAvailableSessions = async (
-  _req: Request,
+  req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
   try {
-    const sessions = await SessionsService.getAvailableSessions();
-    res.json({ success: true, data: sessions });
+    const rawPage = Array.isArray(req.query.page) ? req.query.page[0] : req.query.page;
+    const parsedPage = Number.parseInt(String(rawPage ?? '1'), 10);
+    const page = Number.isNaN(parsedPage) || parsedPage < 1 ? 1 : parsedPage;
+
+    const limit = 10;
+    const result = await SessionsService.getAvailableSessions(page, limit);
+
+    res.json({
+      success: true,
+      data: result.sessions,
+      pagination: {
+        page,
+        limit,
+        total: result.total,
+        totalPages: result.totalPages,
+      },
+    });
   } catch (err) {
     next(err);
   }
